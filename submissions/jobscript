@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -t 20:00:00
+#SBATCH -N 1
+#SBATCH -n 23
+#SBATCH -p normal
+cd /home/vanes/cerebellum_prf/scripts
+python popeye_fit.py 02 01020304 23 11 gray_matter cartfit 0.75 9

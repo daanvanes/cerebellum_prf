@@ -1,0 +1,8 @@
+pixdim[1,2,3] should be positive; setting to abs of pixdim values
+now fitting on subject 02, session 01020304, n_jobs: 23
+loading data
+starting fit in 23 parallel jobs over 26926 voxels
+[Parallel(n_jobs=23)]: Done   1 out of 26926 | elapsed:   15.9s remaining: 7125.4min
+[Parallel(n_jobs=23)]: Done 2992 out of 26926 | elapsed: 50.6min remaining: 404.8min
+[Parallel(n_jobs=23)]: Done 5984 out of 26926 | elapsed: 100.4min remaining: 351.2min
+[Parallel(n_jobs=23)]: Done 8976 out of 26926 | elapsed: 152.2min remaining: 304.4min

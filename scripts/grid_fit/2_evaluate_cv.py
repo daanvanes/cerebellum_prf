@@ -32,7 +32,7 @@ n_folds = 10
 # choose filenames:
 epi_fn = 'tsnr_weighted_mean_of_resampled_fnirted_smoothed_sgtf_over_runs_ses_%s.nii.gz'%ses
 # epi_fn = 'tsnr_weighted_mean_zscore_over_runs_ses_%s.nii.gz'%ses#'mean_zscore_over_all_runs_MNI.nii.gz'
-postFix = 'hrf075_nong'
+postFix = 'hrf0_nong'
 out_fn = 'new_prf_results_zscore_ses_%s'%ses
 
 # setup dirs
@@ -60,33 +60,33 @@ for k in range(n_folds):
     sub_out_dir = os.path.join(prf_base_dir,'sub-%s'%sub)
 
     this_out_fn = os.path.join(sub_out_dir,'sub-%s_%s%s_k%d_cvr2.nii.gz'%(sub,out_fn,postFix,k))
-    # if not os.path.isfile(this_out_fn):
-    # load test data
-    print 'loading test data of fold %d'%k
-    infn = os.path.join(in_home,'sub-%s'%sub,epi_fn).replace('.nii.gz','_test_%d.nii.gz'%k)
-    input_nii = nb.load(infn)
-    input_data = np.nan_to_num(input_nii.get_data())
-    input_shape = input_data.shape
+    if not os.path.isfile(this_out_fn):
+        # load test data
+        print 'loading test data of fold %d'%k
+        infn = os.path.join(in_home,'sub-%s'%sub,epi_fn).replace('.nii.gz','_test_%d.nii.gz'%k)
+        input_nii = nb.load(infn)
+        input_data = np.nan_to_num(input_nii.get_data())
+        input_shape = input_data.shape
 
-    # load predictions
-    print 'loading predictions of fold %d'%k    
-    pred_fn = os.path.join(sub_out_dir,'sub-%s_%s.nii.gz'%(sub,out_fn)).replace('.nii.gz','%s_k%d_predictions.nii.gz'%(postFix,k))
-    pred_nii = nb.load(pred_fn)
-    pred_data = np.nan_to_num(pred_nii.get_data())
+        # load predictions
+        print 'loading predictions of fold %d'%k    
+        pred_fn = os.path.join(sub_out_dir,'sub-%s_%s.nii.gz'%(sub,out_fn)).replace('.nii.gz','%s_k%d_predictions.nii.gz'%(postFix,k))
+        pred_nii = nb.load(pred_fn)
+        pred_data = np.nan_to_num(pred_nii.get_data())
 
-    # assess different combinations:
-    print 'computing cv r2 for fold %d'%k    
-    residual = np.nan_to_num(np.sum((input_data[:,:,:,:-1]-pred_data)**2,axis=-1))
-    r2s = (1 - residual / (np.shape(pred_data)[-1] * input_data.var(axis=-1)))
-    r2s[r2s==1] = 0
-    all_r2s.append(r2s)
+        # assess different combinations:
+        print 'computing cv r2 for fold %d'%k    
+        residual = np.nan_to_num(np.sum((input_data[:,:,:,:-1]-pred_data)**2,axis=-1))
+        r2s = (1 - residual / (np.shape(pred_data)[-1] * input_data.var(axis=-1)))
+        r2s[r2s==1] = 0
+        all_r2s.append(r2s)
 
-    # save
-    print 'saving cvr2 fold %d'%k    
-    prf_nii = nb.Nifti2Image(r2s, affine=input_nii.affine, header=input_nii.header)
-    prf_nii.to_filename(out_fn)
-    # else:
-    #     all_r2s.append(nb.load(this_out_fn).get_data())
+        # save
+        print 'saving cvr2 fold %d'%k    
+        prf_nii = nb.Nifti2Image(r2s, affine=input_nii.affine, header=input_nii.header)
+        prf_nii.to_filename(out_fn)
+    else:
+        all_r2s.append(nb.load(this_out_fn).get_data())
 
 # # avg r2
 # print 'saving avg cvr2 over folds'
@@ -133,6 +133,31 @@ avg_params[:,:,:,dims['r2']] = avg_r2
 
 prf_nii = nb.Nifti2Image(avg_params, affine=param_nii.affine, header=param_nii.header)
 prf_nii.to_filename(param_fn.replace('_k%d'%k,'cv'))
+
+######################################
+# create weighted avg of predictions
+######################################
+
+#####################################
+all_preds = []
+for k in range(n_folds):
+
+    print 'loading data'
+
+    # load params
+    sub_out_dir = os.path.join(prf_base_dir,'sub-%s'%sub)
+    pred_fn = os.path.join(sub_out_dir,'sub-%s_%s.nii.gz'%(sub,out_fn)).replace('.nii.gz','%s_k%d_predictions.nii.gz'%(postFix,k))
+    pred_nii = nb.load(pred_fn)
+    preds = np.nan_to_num(pred_nii.get_data())
+    all_preds.append(preds)
+all_preds = np.array(all_preds)
+all_r2s = np.nan_to_num(all_r2s)
+all_r2s[all_r2s==0] = 1e5
+
+avg_pred = np.average(all_preds,weights=np.tile(all_r2s[:,:,:,:,np.newaxis],(1,1,1,1,119)),axis=0)
+
+prf_nii = nb.Nifti2Image(avg_pred, affine=pred_nii.affine, header=pred_nii.header)
+prf_nii.to_filename(pred_fn.replace('_k%d'%k,'predictions'))
 
 
 
