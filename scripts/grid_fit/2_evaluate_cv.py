@@ -18,26 +18,38 @@ import popeye.utilities as utils
 import popeye.css as css
 import sys
 
+
+########################################################################################
+# command line params
+########################################################################################
+
+# example call for this script: python 2_evaluate_cv.py 01 02
+sub = sys.argv[1]
+ses = sys.argv[2]
+
+########################################################################################
+# set directories
+########################################################################################
+
+# this should point to the directory that contains the tsnr-weighted across run averages:
+in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
+
+# this should point to your repo home:
+repo_home = os.path.join('/home/vanes/git/cerebellum_prf')
+
+# this should point to the dir where you want the prf results to be saved:
+prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
+
 ########################################################################################
 # set parameters
 ########################################################################################
-
-
-# variable params:
-sub = sys.argv[1]
-ses = sys.argv[2]
 
 n_folds = 10
 
 # choose filenames:
 epi_fn = 'tsnr_weighted_mean_of_resampled_fnirted_smoothed_sgtf_over_runs_ses_%s.nii.gz'%ses
-# epi_fn = 'tsnr_weighted_mean_zscore_over_runs_ses_%s.nii.gz'%ses#'mean_zscore_over_all_runs_MNI.nii.gz'
 postFix = 'hrf0_nong'
 out_fn = 'new_prf_results_zscore_ses_%s'%ses
-
-# setup dirs
-in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
-prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
 
 # save dims:
 dims = {
@@ -89,10 +101,10 @@ for k in range(n_folds):
         all_r2s.append(nb.load(this_out_fn).get_data())
 
 # # avg r2
-# print 'saving avg cvr2 over folds'
+print 'saving avg cvr2 over folds'
 avg_r2 = np.mean(all_r2s,axis=0)
-# prf_nii = nb.Nifti2Image(avg_r2, affine=input_nii.affine, header=input_nii.header)
-# prf_nii.to_filename(pred_fn.replace('k%d_predictions'%k,'cvr2'))
+prf_nii = nb.Nifti2Image(avg_r2, affine=input_nii.affine, header=input_nii.header)
+prf_nii.to_filename(pred_fn.replace('k%d_predictions'%k,'cvr2'))
 
 ######################################
 # create weighted avg of parameters

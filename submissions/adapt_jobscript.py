@@ -6,7 +6,7 @@ import scipy.io as io
 import nibabel as nb
 import time
 import sys
-sys.path.append('/home/vanes/cerebellum_prf/scripts/')
+sys.path.append('/home/vanes/cerebellum_prf/scripts/popeye_fit/')
 from create_mask import create_mask
 
 #################################
@@ -18,7 +18,7 @@ ses = {
 mask_type = 'gray_matter'
 postFix = 'cartfit'
 n_jobs = 23
-hrf_delays = [0.75]#,0.75]
+hrf_delays = [0.75]
 
 mask = create_mask(mask_type)
 
@@ -26,7 +26,6 @@ for hrf_delay in hrf_delays:
 	for k in range(10):
 		for sub in subs:
 			for sl in range(13):
-			# for sl in range(mask.shape[2]):
 
 				# only submit job if there are voxels in this slice combo
 				sls = np.arange(sl*7,(sl+1)*7)

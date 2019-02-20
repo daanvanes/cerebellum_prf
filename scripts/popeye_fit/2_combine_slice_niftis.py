@@ -3,18 +3,29 @@ import numpy
 import nibabel as nb
 from IPython import embed as shell
 import numpy as np
-####### set these
+
+########################################################################################
+# set parameters
+########################################################################################
+
 sub = '02'
 ses = '01020304'
 postFix = 'cartfit'
 out_fn = 'new_prf_results_zscore_ses_%s'%ses
 hrf_delay = 0.0
 mask_type = 'gray_matter'
-################
 
-home = os.path.join('/projects','0','pqsh283','cerprf')
-prf_base_dir = os.path.join(home,'prf')
+########################################################################################
+# set dirs
+########################################################################################
+# this dir contains general prf output:
+prf_base_dir = os.path.join('/projects','0','pqsh283','cerprf','prf')
+# this dir contains subject prf output:
 sub_out_dir = os.path.join(prf_base_dir,'sub-%s'%sub)
+
+########################################################################################
+# code
+########################################################################################
 
 for k in range(10):
 	for sl in range(13):

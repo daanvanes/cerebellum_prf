@@ -3,5 +3,5 @@
 #SBATCH -N 1
 #SBATCH -n 23
 #SBATCH -p normal
-cd /home/vanes/cerebellum_prf/scripts
-python popeye_fit.py ---sub--- ---ses--- ---n_jobs--- ---sl--- ---mask_type--- ---postFix--- ---hrf_delay--- ---k---
+cd /home/vanes/cerebellum_prf/scripts/popey_fit/
+python 1_popeye_fit.py ---sub--- ---ses--- ---n_jobs--- ---sl--- ---mask_type--- ---postFix--- ---hrf_delay--- ---k---

@@ -23,51 +23,50 @@ sys.path.append('/home/vanes/cerebellum_prf/scripts/')
 from create_mask import create_mask
 
 ########################################################################################
+# command line inputs
+########################################################################################
+
+# example call to this script: python 4_evaluate_popeye_cv.py 01 01 gray_matter 0.75 myfit 
+sub = sys.argv[1]
+ses = sys.argv[2]
+mask_type = sys.argv[3]
+hrf_delay = float(sys.argv[4])
+postFix = sys.argv[5]
+ks = np.range(10)
+
+########################################################################################
+# set dirs
+########################################################################################
+
+if socket.gethostname() == 'aeneas':
+    # set these
+    # dir where input timecourses are located:
+    in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
+    # where s repo stored:
+    repo_dir = os.path.join('/home','vanes','git','cerebellum_prf')
+    # where should prf results be saved:
+    prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
+
+else:
+    # set these
+    # dir where input timecourses are located:
+    in_home  = os.path.join('/projects','0','pqsh283','cerprf','zscore')
+    # where is repo cloned:
+    repo_dir = os.path.join('/home','vanes','git','cerebellum_prf')
+    # where should prf results be saved:
+    prf_base_dir = os.path.join('/projects','0','pqsh283','cerprf','prf')
+
+# these follow from above:
+volume_mask_home = os.path.join(repo_dir,'resources','volume_masks')
+if not os.path.isdir(prf_base_dir): os.mkdir(prf_base_dir)
+dm_fn = os.path.join(repo_dir,'resources','design_matrix.npy')
+
+########################################################################################
 # set parameters
 ########################################################################################
 
-# variable params:
-sub = sys.argv[1]
-ses = sys.argv[2]
-# n_folds = 10
-mask_type = sys.argv[3]
-hrf_delay = float(sys.argv[4])
-postFix = sys.argv[5]#+'_hrf%.2f'%hrf_delay
-ks = np.arange(1,10)
-# shell()
 epi_fn = 'tsnr_weighted_mean_of_resampled_fnirted_smoothed_sgtf_over_runs_ses_%s.nii.gz'%ses
-
-# choose filenames:
-# epi_fn = 'tsnr_weighted_mean_of_resampled_fnirted_smoothed_sgtf_over_runs_ses_%s_test_%d/.nii.gz'%(ses)
-# epi_fn = 'tsnr_weighted_mean_zscore_over_runs_ses_%s.nii.gz'%ses#'mean_zscore_over_all_runs_MNI.nii.gz'
-# postFix = 'popeye'
 out_fn = 'new_prf_results_zscore_ses_%s'%(ses)
-
-# determine fit settings:
-# animate_dm = False
-
-# print('now fitting on subject %s, session %s, n_jobs: %d'%(sub,ses,n_jobs))
-# mask_type = 'wang'#gray_matter'#'cerebellum''wang'
-
-# TR = 1.5 # in s
-# hrf_delay = 0#np.linspace(-TR,TR,5)
-# hrf_delays = np.linspace(-TR*2,TR*2,9)
-
-# setup dirs
-if socket.gethostname() == 'aeneas':
-    in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
-    volume_mask_home = os.path.join('/home','shared','2018','visual','cerebellum_prf','resources','volume_masks')
-    mni_home  = os.path.join('/home','vanes','bin','fsl','data','standard')
-    prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
-    if not os.path.isdir(prf_base_dir): os.mkdir(prf_base_dir)
-    dm_fn = os.path.join('/home','shared','2018','visual','cerebellum_prf','resources','design_matrix.npy')
-else:
-    home = os.path.join('/projects','0','pqsh283','cerprf')
-    in_home  = os.path.join(home,'zscore')
-    volume_mask_home = os.path.join(home,'resources','volume_masks')
-    # mni_home  = os.path.join('/home','vanes','bin','fsl','data','standard')
-    prf_base_dir = os.path.join(home,'prf')
-    dm_fn = os.path.join(home,'resources','design_matrix.npy')  
 
 # save dims:
 dims = {
@@ -80,7 +79,6 @@ dims = {
 'r2':6,
 'amp':7,
 'n':8}
-
 
 ######################################
 # get r2s

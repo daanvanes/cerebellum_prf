@@ -19,54 +19,63 @@ import popeye.utilities as utils
 import popeye.css as css
 import sys
 
-sys.path.append('/home/vanes/cerebellum_prf/scripts/')
-from create_mask import create_mask
-
 ########################################################################################
 # set parameters
 ########################################################################################
 
 # variable params:
+# example call to this script: python 1_popey_fit.py 01 01 10 2 gray_matter 0.75 myfit 1
 sub = sys.argv[1]
 ses = sys.argv[2]
 n_jobs = int(sys.argv[3])
-# n_folds = 10
 sl = int(sys.argv[4])
 mask_type = sys.argv[5]
 hrf_delay = float(sys.argv[7])
 postFix = sys.argv[6]+'_hrf%.2f'%hrf_delay
 k = int(sys.argv[8])
+
+########################################################################################
+# set dirs
+########################################################################################
+
+# setup dirs
+if socket.gethostname() == 'aeneas':
+    # set these
+    # dir where input timecourses are located:
+    in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
+    # where s repo stored:
+    repo_dir = os.path.join('/home','vanes','git','cerebellum_prf')
+    # where should prf results be saved:
+    prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
+
+else:
+    # set these
+    # dir where input timecourses are located:
+    in_home  = os.path.join('/projects','0','pqsh283','cerprf','zscore')
+    # where is repo cloned:
+    repo_dir = os.path.join('/home','vanes','git','cerebellum_prf')
+    # where should prf results be saved:
+    prf_base_dir = os.path.join('/projects','0','pqsh283','cerprf','prf')
+
+# these follow from above:
+volume_mask_home = os.path.join(repo_dir,'resources','volume_masks')
+if not os.path.isdir(prf_base_dir): os.mkdir(prf_base_dir)
+dm_fn = os.path.join(repo_dir,'resources','design_matrix.npy')
+
+########################################################################################
+# set parameters
+########################################################################################
+
 # choose filenames:
 epi_fn = 'tsnr_weighted_mean_of_resampled_fnirted_smoothed_sgtf_over_runs_ses_%s_train_%d.nii.gz'%(ses,k)
-# epi_fn = 'tsnr_weighted_mean_zscore_over_runs_ses_%s.nii.gz'%ses#'mean_zscore_over_all_runs_MNI.nii.gz'
-# postFix = 'popeye'
 out_fn = 'new_prf_results_zscore_ses_%s'%(ses)
 
 # determine fit settings:
 animate_dm = False
 
 print('now fitting on subject %s, session %s, n_jobs: %d'%(sub,ses,n_jobs))
-# mask_type = 'wang'#gray_matter'#'cerebellum''wang'
 
-TR = 1.5 # in s
-# hrf_delay = 0#np.linspace(-TR,TR,5)
-# hrf_delays = np.linspace(-TR*2,TR*2,9)
-
-# setup dirs
-if socket.gethostname() == 'aeneas':
-    in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
-    volume_mask_home = os.path.join('/home','shared','2018','visual','cerebellum_prf','resources','volume_masks')
-    mni_home  = os.path.join('/home','vanes','bin','fsl','data','standard')
-    prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
-    if not os.path.isdir(prf_base_dir): os.mkdir(prf_base_dir)
-    dm_fn = os.path.join('/home','shared','2018','visual','cerebellum_prf','resources','design_matrix.npy')
-else:
-    home = os.path.join('/projects','0','pqsh283','cerprf')
-    in_home  = os.path.join(home,'zscore')
-    volume_mask_home = os.path.join(home,'resources','volume_masks')
-    # mni_home  = os.path.join('/home','vanes','bin','fsl','data','standard')
-    prf_base_dir = os.path.join(home,'prf')
-    dm_fn = os.path.join(home,'resources','design_matrix.npy')  
+TR = 1.5
 
 # save dims:
 dims = {
@@ -80,7 +89,6 @@ dims = {
 'amp':7,
 'n':8,
 }
-
 
 ########################################################################################
 # load dm
@@ -142,7 +150,13 @@ valid_voxels = (np.sum(input_data,axis=-1)!=0)
 sl_mask = np.zeros(input_data.shape[:-1]).astype(bool)
 
 # get anatomical roi
-mask = create_mask(mask_type)
+if mask_type == 'cerebellum':
+    # loading cerebellum mask
+    mask_fn = os.path.join(volume_mask_home,'cmask.nii')
+    mask = nb.load(mask_fn).get_data().astype(bool)
+elif mask_type == 'gray_matter':
+    mask_fn = os.path.join(volume_mask_home,'avg152T1_gray.hdr')
+    mask = np.squeeze((nb.load(mask_fn).get_data()>0.1)) # conservative threshold
 
 # mask by slice number
 sls = np.arange(sl*7,(sl+1)*7)

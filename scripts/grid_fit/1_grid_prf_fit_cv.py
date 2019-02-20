@@ -19,19 +19,41 @@ import popeye.css as css
 import sys
 
 ########################################################################################
-# set parameters
+# command line params
 ########################################################################################
 
 # variable params:
+# example call for this script: python 1_grid_prf_fit_cv.py 01 02 8 12
 sub = sys.argv[1]
 ses = sys.argv[2]
 k = int(sys.argv[4])
 n_jobs = int(sys.argv[3])
-n_folds = 10
+
+########################################################################################
+# set directories
+########################################################################################
+
+# this should point to the directory that contains the tsnr-weighted across run averages:
+in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
+
+# this should point to your repo home:
+repo_home = os.path.join('/home/vanes/git/cerebellum_prf')
+
+# this should point to the dir where you want the prf results to be saved:
+prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
+if not os.path.isdir(prf_base_dir): os.mkdir(prf_base_dir)
+
+# these automatically follow from the above 
+volume_mask_home = os.path.join(repo_home,'resources','volume_masks')
+dm_fn = os.path.join(repo_home,'resources','design_matrix.npy')
+
+
+########################################################################################
+# set parameters
+########################################################################################
 
 # choose filenames:
 epi_fn = 'tsnr_weighted_mean_of_resampled_fnirted_smoothed_sgtf_over_runs_ses_%s.nii.gz'%ses
-# epi_fn = 'tsnr_weighted_mean_zscore_over_runs_ses_%s.nii.gz'%ses#'mean_zscore_over_all_runs_MNI.nii.gz'
 postFix = 'hrf0_nong'
 out_fn = 'new_prf_results_zscore_ses_%s'%ses
 
@@ -43,17 +65,7 @@ mask_type = 'gray_matter'#gray_matter'#'cerebellum''wang'
 fit_type = 'full'# fast
 
 TR = 1.5 # in s
-hrf_delays = [0]#np.linspace(-TR,TR,5)
-# hrf_delays = np.linspace(-TR*2,TR*2,9)
-
-# setup dirs
-in_home  = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','zscore')
-volume_mask_home = os.path.join('/home','shared','2018','visual','cerebellum_prf','resources','volume_masks')
-mni_home  = os.path.join('/home','vanes','bin','fsl','data','standard')
-prf_base_dir = os.path.join('/home','shared','2018','visual','cerebellum_prf','derivatives','pp','prf')
-if not os.path.isdir(prf_base_dir): os.mkdir(prf_base_dir)
-
-dm_fn = os.path.join('/home','shared','2018','visual','cerebellum_prf','resources','design_matrix.npy')
+hrf_delays = [0]
 
 # save dims:
 dims = {
@@ -90,111 +102,6 @@ dm[50,89,:] = 0
 
 #revert y axis
 dm = dm[::-1,:,:] # this is how popeye wants y dim (0 point is top of dm)
-
-########################################################################################
-# some code for generating stimulus design matrix
-########################################################################################
-
-# class PRFModelTrial(object):
-#     """docstring for PRFModelTrial"""
-
-#     def __init__(self, orientation, n_elements, n_samples, sample_duration, bar_width=0.1, ecc_test=1.0):
-#         super(PRFModelTrial, self).__init__()
-#         self.orientation = orientation
-#         self.n_elements = n_elements
-#         self.n_samples = n_samples
-#         self.sample_duration = sample_duration
-#         self.bar_width = bar_width * 2.
-
-#         self.rotation_matrix = np.matrix(
-#             [[cos(self.orientation), -sin(self.orientation)], [sin(self.orientation), cos(self.orientation)]])
-
-#         x, y = np.meshgrid(np.linspace(-1, 1, self.n_elements),
-#                            np.linspace(-1, 1, self.n_elements))
-#         self.xy = np.matrix([x.ravel(), y.ravel()])
-#         self.rotated_xy = np.array(self.rotation_matrix * self.xy)
-#         self.ecc_test = (np.array(self.xy) ** 2).sum(axis=0) <= ecc_test
-
-#         if ecc_test == None:
-#             self.ecc_test = np.ones_like(self.ecc_test, dtype=bool)
-
-#     def in_bar(self, time=0):
-#         """in_bar, a method, not Ralph."""
-#         # a bar of self.bar_width width
-#         position = 2.0 * ((time * (1.0 + self.bar_width / 2.0)
-#                            ) - (0.5 + self.bar_width / 4.0))
-#         # position = 2.0 * ((time * (1.0 + self.bar_width)) - (0.5 + self.bar_width / 2.0))
-#         extent = [-self.bar_width / 2.0 + position,
-#                   self.bar_width / 2.0 + position]
-#         # rotating the xy matrix itself allows us to test only the x component
-#         return ((self.rotated_xy[0, :] >= extent[0]) * (self.rotated_xy[0, :] <= extent[1]) * self.ecc_test).reshape((self.n_elements, self.n_elements))
-
-#     def pass_through(self):
-#         """pass_through models a single pass-through of the bar, 
-#         with padding as in the padding list for start and end."""
-
-#         self.pass_matrix = np.array(
-#             [self.in_bar(i) for i in np.linspace(0.0, 1.0, self.n_samples, endpoint=True)])
-
-# ########################################################################################
-# # creating a stimulus design matrix
-# ########################################################################################
-
-# def create_visual_designmatrix_all(
-#         bar_dur_in_TR=32,
-#         iti_duration=2,
-#         bar_width=0.125,
-#         n_pixels=100,
-#         thetas=[],
-#         nr_timepoints=462,
-#         ecc_test=None):
-    
-#     ITIs = np.zeros((iti_duration, n_pixels, n_pixels))
-#     all_bars = []
-#     for xi,x in enumerate(thetas):
-#         all_bars.extend(ITIs)
-#         if x == -1:
-#             all_bars.extend(np.zeros((bar_dur_in_TR[xi], n_pixels, n_pixels)))
-#         else:
-#             pmt = PRFModelTrial(orientation = np.radians(x), n_elements=n_pixels,
-#                                 n_samples=bar_dur_in_TR[xi], sample_duration=1, bar_width=bar_width,
-#                                 ecc_test=ecc_test)
-#             pmt.pass_through()
-#             pmt.pass_matrix = pmt.pass_matrix
-#             all_bars.extend(pmt.pass_matrix)
-
-#     # swap axes for popeye:
-#     visual_dm = np.transpose(np.array(all_bars), [1, 2, 0])
-#     visual_dm = np.round(visual_dm[:, :, :nr_timepoints]).astype(np.int16)
-
-#     return visual_dm
-
-# dm = create_visual_designmatrix_all(
-#         bar_dur_in_TR=TRs_per_bar_pass,
-#         iti_duration=ITI,
-#         bar_width=0.1,
-#         n_pixels=N_PIXELS,
-#         thetas=bar_orientations,
-#         nr_timepoints=N_TIMEPOINTS,
-#         ecc_test=None)
-
-# import Tkinter
-# dm_gif = []
-# for t in range(120):
-#     frame2 = TKinter.PhotoImage(file=imagefilename, format="gif -index 2")
-
-
-# ########################################################################################
-# # resample dm to fit screen dimensions
-# ########################################################################################
-
-# large_n_pix = np.round(XY_RATIO*N_PIXELS)
-# r_dm = np.round(resample(dm,num=large_n_pix,axis=1)) # expand along x axis
-# large_dm = np.zeros((large_n_pix,large_n_pix,N_TIMEPOINTS))
-# edge = int((large_n_pix-N_PIXELS)/2.)
-# large_dm[edge:-edge,:,:] = r_dm
-# del r_dm
-
 
 
 ########################################################################################
@@ -284,9 +191,6 @@ model_func = CompressiveSpatialSummationModelFiltered(stimulus = stimulus, hrf_m
                                                       sg_filter_window_length=120, sg_filter_order=3,
                                                       tr=TR)
 
-# model_func.hrf_delay = hrf_delays[sub]
-# for k in range(n_folds):
-
 print 'loading data'
 
 # load data
@@ -308,15 +212,8 @@ if mask_type == 'cerebellum':
     mask_fn = os.path.join(volume_mask_home,'cmask.nii')
     mask = nb.load(mask_fn).get_data().astype(bool)
 elif mask_type == 'gray_matter':
-    mask_fn = os.path.join(mni_home,'tissuepriors','avg152T1_gray.hdr')
+    mask_fn = os.path.join(volume_mask_home,'avg152T1_gray.hdr')
     mask = np.squeeze((nb.load(mask_fn).get_data()>0.1)) # conservative threshold
-elif mask_type == 'wang':
-    # load wang atlas
-    wang_dir = '/home/shared/2018/visual/cerebellum_prf/Wang_prob_retmaps'
-    mask= np.zeros_like(valid_voxels).astype(bool)
-    for hemi in ['lh','rh']:
-        resampled_fn = os.path.join(wang_dir,'maxprob_vol_%s_resampled.nii.gz'%hemi)
-        mask[nb.load(resampled_fn).get_data()>0] = True
 
 # determine mask
 mask = mask*valid_voxels
